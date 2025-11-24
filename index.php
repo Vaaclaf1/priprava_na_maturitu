@@ -13,7 +13,7 @@
         <section>
             <div class="form">
                 <div class="form-header">
-                    <img src="/images/apexlogo.png" alt="LogoApex">
+                    <img src="C:\Users\STARNET\priprava_na_maturitu\images\apexlogo.png" alt="LogoApex">
                     <h2>Create an account</h2>
                 </div>
                 <form action="register.php" method="POST">
