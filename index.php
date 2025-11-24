@@ -16,8 +16,6 @@
                     <img src="/images/apexlogo.png" alt="LogoApex">
                     <h2>Create an account</h2>
                 </div>
-
-                <!-- 🔥 TADY JE UPRAVENÝ FORM S FUNKČNÍM ODESÍLÁNÍM -->
                 <form action="register.php" method="POST">
                     <div class="form-main">
                         <div class="form-main-inputs">
@@ -70,7 +68,7 @@
                 </form>
 
                 <div class="form-footer">
-                    <a href="login.php">
+                    <a href="login.html">
                         <span>Already have an account?</span>
                         Sign in
                     </a>
