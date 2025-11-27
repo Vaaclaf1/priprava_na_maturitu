@@ -5,6 +5,8 @@ session_start();
 $error = '';
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+    verify_csrf_token($_POST['csrf_token'] ?? '');
+
     $username = trim($_POST['username']);
     $password = $_POST['password'];
 
@@ -16,6 +18,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $stmt->fetch();
 
     if ($stmt->num_rows === 1 && password_verify($password, $hashed_password)) {
+        session_regenerate_id(true);
         $_SESSION['user_id'] = $id;
         header("Location: dashboard.php");
         exit;
@@ -45,6 +48,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             <?php if ($error) echo "<p style='color:red;'>$error</p>"; ?>
 
             <form method="POST">
+                <input type="hidden" name="csrf_token" value="<?= generate_csrf_token() ?>">
                 <input type="text" name="username" placeholder="Username" required>
                 <input type="password" name="password" placeholder="Password" required>
                 <button type="submit">Login</button>

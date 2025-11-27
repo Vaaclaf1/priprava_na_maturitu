@@ -1,3 +1,13 @@
+<?php
+session_start();
+require 'config.php';
+
+$error = $_SESSION['register_error'] ?? '';
+$success = $_SESSION['register_success'] ?? '';
+$username_value = $_SESSION['register_data']['username'] ?? '';
+
+unset($_SESSION['register_error'], $_SESSION['register_success'], $_SESSION['register_data']);
+?>
 <!DOCTYPE html>
 <html lang="cs">
 <head>
@@ -16,7 +26,16 @@
                     <img src="/images/apexlogo.png" alt="LogoApex">
                     <h2>Create an account</h2>
                 </div>
+
+                <?php if ($error): ?>
+                    <p style="color:red; margin-bottom:1rem; text-align:center;"><?= htmlspecialchars($error) ?></p>
+                <?php endif; ?>
+                <?php if ($success): ?>
+                    <p style="color:green; margin-bottom:1rem; text-align:center;"><?= $success ?></p>
+                <?php endif; ?>
+
                 <form action="register.php" method="POST">
+                    <input type="hidden" name="csrf_token" value="<?= generate_csrf_token() ?>">
                     <div class="form-main">
                         <div class="form-main-inputs">
                             <div class="form-main-inputs-label">
@@ -25,7 +44,7 @@
                                 </svg>
                                 <label for="name">Username</label>
                             </div>
-                            <input type="text" name="username" placeholder="Username (alphanumeric only)" required>
+                            <input type="text" name="username" placeholder="Username (alphanumeric only)" value="<?= htmlspecialchars($username_value) ?>" required>
                         </div>
 
                         <div class="form-main-inputs">
