@@ -1,3 +1,47 @@
+<?php
+session_start();
+require 'config.php';
+
+$error = '';
+$success = '';
+
+if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+    $username = trim($_POST['username']);
+    $password = $_POST['password'];
+    $password2 = $_POST['password2'];
+
+    verify_csrf_token($_POST['csrf_token'] ?? '');
+
+    if (empty($username) || empty($password) || empty($password2)) {
+        $error = "Vyplňte všechna pole!";
+    } elseif ($password !== $password2) {
+        $error = "Hesla se neshodují!";
+    } elseif (strlen($password) < 6) {
+        $error = "Heslo musí mít alespoň 6 znaků!";
+    } else {
+        // Kontrola zda uživatel existuje
+        $stmt = $conn->prepare("SELECT id FROM users WHERE username = ?");
+        $stmt->bind_param("s", $username);
+        $stmt->execute();
+        $stmt->store_result();
+
+        if ($stmt->num_rows > 0) {
+            $error = "Uživatel už existuje!";
+        } else {
+            $password_hash = password_hash($password, PASSWORD_DEFAULT);
+
+            $stmt = $conn->prepare("INSERT INTO users (username, password) VALUES (?, ?)");
+            $stmt->bind_param("ss", $username, $password_hash);
+
+            if ($stmt->execute()) {
+                $success = "Registrace byla úspěšná! <a href='login.php' style='color:#f25a5a;'>Přihlaste se zde</a>.";
+            } else {
+                $error = "Chyba při registraci.";
+            }
+        }
+    }
+}
+?>
 <!DOCTYPE html>
 <html lang="cs">
 <head>
@@ -16,7 +60,16 @@
                     <img src="/images/apexlogo.png" alt="LogoApex">
                     <h2>Create an account</h2>
                 </div>
-                <form action="register.php" method="POST">
+
+                <?php if ($error): ?>
+                    <p style="color:red; margin-bottom:1rem; text-align:center;"><?= htmlspecialchars($error) ?></p>
+                <?php endif; ?>
+                <?php if ($success): ?>
+                    <p style="color:green; margin-bottom:1rem; text-align:center;"><?= $success ?></p>
+                <?php endif; ?>
+
+                <form action="" method="POST">
+                    <input type="hidden" name="csrf_token" value="<?= generate_csrf_token() ?>">
                     <div class="form-main">
                         <div class="form-main-inputs">
                             <div class="form-main-inputs-label">
@@ -25,7 +78,7 @@
                                 </svg>
                                 <label for="name">Username</label>
                             </div>
-                            <input type="text" name="username" placeholder="Username (alphanumeric only)" required>
+                            <input type="text" name="username" placeholder="Username (alphanumeric only)" value="<?= isset($username) ? htmlspecialchars($username) : '' ?>" required>
                         </div>
 
                         <div class="form-main-inputs">

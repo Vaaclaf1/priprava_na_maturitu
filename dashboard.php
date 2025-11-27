@@ -19,6 +19,7 @@ $stmt->close();
 
 // Zpracování změny username
 if (isset($_POST['change_username'])) {
+    verify_csrf_token($_POST['csrf_token'] ?? '');
     $new_username = trim($_POST['new_username']);
     if (!empty($new_username)) {
         $stmt = $conn->prepare("UPDATE users SET username = ? WHERE id = ?");
@@ -32,6 +33,7 @@ if (isset($_POST['change_username'])) {
 
 // Zpracování změny hesla
 if (isset($_POST['change_password'])) {
+    verify_csrf_token($_POST['csrf_token'] ?? '');
     $current_pass = $_POST['current_password'];
     $new_pass = $_POST['new_password'];
     $confirm_pass = $_POST['confirm_password'];
@@ -51,7 +53,9 @@ if (isset($_POST['change_password'])) {
             $stmt->bind_param("si", $new_hash, $user_id);
             $stmt->execute();
             $stmt->close();
-            $pass_message = "Heslo bylo úspěšně změněno!";
+            $_SESSION['pass_message'] = "Heslo bylo úspěšně změněno!";
+            header("Location: dashboard.php");
+            exit;
         } else {
             $pass_message = "Nová hesla se neshodují nebo jsou příliš krátká.";
         }
@@ -62,15 +66,26 @@ if (isset($_POST['change_password'])) {
 
 // Zpracování změny avatara
 if (isset($_FILES['avatar']) && $_FILES['avatar']['error'] === 0) {
-    $avatar_tmp = file_get_contents($_FILES['avatar']['tmp_name']);
-    $stmt = $conn->prepare("UPDATE users SET avatar = ? WHERE id = ?");
-    $null = NULL;
-    $stmt->bind_param("bi", $null, $user_id);
-    $stmt->send_long_data(0, $avatar_tmp);
-    $stmt->execute();
-    $stmt->close();
-    header("Location: dashboard.php");
-    exit;
+    verify_csrf_token($_POST['csrf_token'] ?? '');
+
+    $finfo = new finfo(FILEINFO_MIME_TYPE);
+    $mime_type = $finfo->file($_FILES['avatar']['tmp_name']);
+
+    $allowed_types = ['image/jpeg', 'image/png', 'image/gif', 'image/webp'];
+
+    if (in_array($mime_type, $allowed_types)) {
+        $avatar_tmp = file_get_contents($_FILES['avatar']['tmp_name']);
+        $stmt = $conn->prepare("UPDATE users SET avatar = ? WHERE id = ?");
+        $null = NULL;
+        $stmt->bind_param("bi", $null, $user_id);
+        $stmt->send_long_data(0, $avatar_tmp);
+        $stmt->execute();
+        $stmt->close();
+        header("Location: dashboard.php");
+        exit;
+    } else {
+        $avatar_error = "Neplatný formát souboru. Povolené jsou JPG, PNG, GIF, WEBP.";
+    }
 }
 ?>
 
@@ -90,6 +105,16 @@ if (isset($_FILES['avatar']) && $_FILES['avatar']['error'] === 0) {
                 <h2>Dashboard</h2>
             </div>
 
+            <?php
+            if (isset($_SESSION['pass_message'])) {
+                echo "<p style='color:green; text-align:center;'>" . $_SESSION['pass_message'] . "</p>";
+                unset($_SESSION['pass_message']);
+            }
+            if (isset($avatar_error)) {
+                 echo "<p style='color:red; text-align:center;'>" . $avatar_error . "</p>";
+            }
+            ?>
+
             <!-- Profil -->
             <div class="profile" style="display:flex; align-items:center; gap:1rem; margin-bottom:2rem;">
                 <?php if ($avatar): ?>
@@ -102,6 +127,7 @@ if (isset($_FILES['avatar']) && $_FILES['avatar']['error'] === 0) {
 
             <!-- Změna username -->
             <form method="POST">
+                <input type="hidden" name="csrf_token" value="<?= generate_csrf_token() ?>">
                 <label for="new_username">Změnit nick:</label>
                 <input type="text" name="new_username" placeholder="Nový nick" required>
                 <button type="submit" name="change_username">Uložit nick</button>
@@ -109,6 +135,7 @@ if (isset($_FILES['avatar']) && $_FILES['avatar']['error'] === 0) {
 
             <!-- Změna hesla -->
             <form method="POST" style="margin-top:1rem;">
+                <input type="hidden" name="csrf_token" value="<?= generate_csrf_token() ?>">
                 <label for="current_password">Aktuální heslo:</label>
                 <input type="password" name="current_password" placeholder="Současné heslo" required>
                 <label for="new_password">Nové heslo:</label>
@@ -121,6 +148,7 @@ if (isset($_FILES['avatar']) && $_FILES['avatar']['error'] === 0) {
 
             <!-- Změna avatara -->
             <form action="" method="POST" enctype="multipart/form-data" style="margin-top:1rem;">
+                <input type="hidden" name="csrf_token" value="<?= generate_csrf_token() ?>">
                 <label for="avatar">Změnit avatar:</label>
                 <input type="file" name="avatar" accept="image/*" required>
                 <button type="submit">Nahrát avatar</button>
